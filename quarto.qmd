@@ -1,0 +1,72 @@
+---
+title: "analisis  estadistico"
+author: "Leticia"
+format: html2
+
+---
+
+```{r}
+library(googlesheets4)
+library(tidyverse)
+library(emmeans)
+library(emmeans)
+library(multcomp)
+library(inti)
+library(ggplot2)
+library(FactoMineR)
+```
+importar googlesheets al R studio
+```{r}
+
+url <- "https://docs.google.com/spreadsheets/d/1CrQ-UROjFZSeNpfiSRIYNX3Zg8mLSFnx-odOdbmSBtY/edit?gid=1269900477#gid=1269900477"
+
+gs <- url %>%
+ as_sheets_id()
+ 
+fb <- gs %>%
+  range_read(sheet="fb")
+
+```
+#ANOVA
+```{r}
+modelo <- aov(cc_pb ~ ciudad * alimento, data=fb)
+anova(modelo)
+```
+```{r}
+plot(modelo)
+```
+#comparacion de medias
+
+```{r}
+emm <- emmeans(modelo, ~ ciudad * alimento)
+letras <- cld(emm, alpha = 0.05, Letters = letters, adjust = "tukey")
+letras
+```
+##Grafico
+```{r}
+plot_smr(data = letras,x = "ciudad", y = "emmean", group = "alimento", type = "bar", ylab = "Concentracion de Plomo")
+
+```
+```{r}
+ggplot(letras, aes(x = ciudad, y = emmean, fill = alimento)) +
+  geom_col(position = position_dodge(width = 0.9), width = 0.7) +
+  geom_errorbar(aes(ymin = emmean - SE, ymax = emmean + SE),
+                position = position_dodge(width = 0.9),
+                width = 0.2) +
+  geom_text(aes(label = .group),
+            position = position_dodge(width = 0.9),
+            vjust = -0.5, size = 5) +
+  labs(x = "Ciudad", y = "Media estimada", fill = "Alimento") +
+  theme_minimal(base_size = 14)
+```
+#PCA
+```{r}
+rs <- fb %>%
+  group_by(ciudad, alimento) %>%
+summarise(across(where(is.numeric), ~ mean(.x, na.rm = TRUE)))
+
+mv <- rs %>%
+  PCA(scale.unit = T, quali.sup= c(1,2,3))
+
+```
+
